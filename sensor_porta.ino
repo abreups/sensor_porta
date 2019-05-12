@@ -47,20 +47,13 @@
 #include "SSD1306.h"        // comunication with display OLED SSD1306
 // Instale a partir da IDE do Arduino. Biblioteca dos autores Daniel e Fabrice
 #endif
-//#include <OneWire.h>        // OneWire protocol used by the DS18x20 temperature sensor 
-// Instale a partir da IDE do Arduino. Biblioteca do autor Jim Studt e outros
 
 //#include <TimeLib.h>		    // time/clock functions. To synch up with ntp time
 #include <time.h>
 // ambos os arquivos vem da fonte: https://github.com/PaulStoffregen/Time
 
-//#include <Timer.h>
-// to schedule callback functions in the future 
-// http://blog.rhesoft.com/2014/06/18/tutorial-using-timer-object-interval-and-singleshot-callback-in-arduino/
-// download library Timer from https://github.com/aron-bordin/PNG-Arduino-Framework
 
-#include <FastCRC.h>
-// fonte: https://github.com/FrankBoesing/FastCRC
+#include <FastCRC.h> // fonte: https://github.com/FrankBoesing/FastCRC
 
 
 FastCRC8 CRC8;
@@ -98,7 +91,6 @@ outros alarmes: valor da corrente do motor, valor da temperatura do motor
 //#define   load_motor_table  0x07 //- load_motor_table   OK|NG   
 //#define   show_status       0x08 //- show_status        OK|NG  - transferir arquivo texto “status.txt”
 
-//#define NTPTIME   0x09      // payload has 4 bytes with ntp time
 
 // Alarm IDs (types of alarm):
 //#define NOWATER           0x01  // 
