@@ -47,14 +47,14 @@
 #include "SSD1306.h"        // comunication with display OLED SSD1306
 // Instale a partir da IDE do Arduino. Biblioteca dos autores Daniel e Fabrice
 #endif
-#include <OneWire.h>        // OneWire protocol used by the DS18x20 temperature sensor 
+//#include <OneWire.h>        // OneWire protocol used by the DS18x20 temperature sensor 
 // Instale a partir da IDE do Arduino. Biblioteca do autor Jim Studt e outros
 
-#include <TimeLib.h>		    // time/clock functions. To synch up with ntp time
+//#include <TimeLib.h>		    // time/clock functions. To synch up with ntp time
 #include <time.h>
 // ambos os arquivos vem da fonte: https://github.com/PaulStoffregen/Time
 
-#include <Timer.h>
+//#include <Timer.h>
 // to schedule callback functions in the future 
 // http://blog.rhesoft.com/2014/06/18/tutorial-using-timer-object-interval-and-singleshot-callback-in-arduino/
 // download library Timer from https://github.com/aron-bordin/PNG-Arduino-Framework
@@ -89,20 +89,20 @@ outros alarmes: valor da corrente do motor, valor da temperatura do motor
 #define   GPIOSETUP  0x00    // the command type is to set the gpio up
 
 #define RESP              0x03 // Msgtype = byte 03H - RESP - response
-#define   motor_on          0x01 // motor_on            OK|NG    byte   (OK=01, NG=00)
-#define   motor_off         0x02 //- motor_off          OK|NG   
-#define   water_level       0x03 //- water_level        OK|NG   
-#define   water_temperature 0x04 //- water_temperature  XX     byte   (XX temp oC)
-#define   current_ac_motor  0x05 //- current-ac_motor   YY.Y      byte   (XX Amps) 
+//#define   motor_on          0x01 // motor_on            OK|NG    byte   (OK=01, NG=00)
+//#define   motor_off         0x02 //- motor_off          OK|NG   
+//#define   water_level       0x03 //- water_level        OK|NG   
+//#define   water_temperature 0x04 //- water_temperature  XX     byte   (XX temp oC)
+//#define   current_ac_motor  0x05 //- current-ac_motor   YY.Y      byte   (XX Amps) 
 #define   master_reset      0x06 //- master-reset       OK|NG    
-#define   load_motor_table  0x07 //- load_motor_table   OK|NG   
-#define   show_status       0x08 //- show_status        OK|NG  - transferir arquivo texto “status.txt”
+//#define   load_motor_table  0x07 //- load_motor_table   OK|NG   
+//#define   show_status       0x08 //- show_status        OK|NG  - transferir arquivo texto “status.txt”
 
-#define NTPTIME   0x09      // payload has 4 bytes with ntp time
+//#define NTPTIME   0x09      // payload has 4 bytes with ntp time
 
 // Alarm IDs (types of alarm):
-#define NOWATER           0x01  // 
-#define NOCLOCK           0x20  // informs master that slave needs to synch its clock
+//#define NOWATER           0x01  // 
+//#define NOCLOCK           0x20  // informs master that slave needs to synch its clock
 /*02 - high_current_motor    // no futuro motor_X (X=1..9)
 03 - no_current_motor       // no futuro motor_X    (X=1..9)
 04 - power_down
@@ -119,7 +119,7 @@ outros alarmes: valor da corrente do motor, valor da temperatura do motor
 #define RST     14         // GPIO14 -- SX127x's RESET
 #define DI00    26         // GPIO26 -- SX127x's IRQ(Interrupt Request)
 
-OneWire  ds(17);           // OneWire protocol on pin 17 (a 4.7K pull up resistor is necessary)
+//OneWire  ds(17);           // OneWire protocol on pin 17 (a 4.7K pull up resistor is necessary)
 #define DOOROPEN 35        // pin to receive information from a reed switch sensor
 
 
@@ -181,260 +181,6 @@ unsigned char CP2 = 0;
 unsigned char CP3 = 0;
 unsigned char CP4 = 0;    // least significant byte
 
-// will call the callback in the interval of xxx ms - used for ntp setup
-//Timer *timer1 = new Timer(5 * 1000);        // 5 sec interval 
-Timer *timer1 = new Timer(15 * 1000);        // 15 sec interval 
-
-// used for Temperature sensor
-//Timer *timer2 = new Timer(10 * 1000);     // 10 sec interval
-Timer *timer2 = new Timer(10 * 60 * 1000);  // 10 min = 10 * 60 s = 600s = 1000 * 600 = 600.000 ms
-//Timer *timer2 = new Timer(300*1000);      // 5 min = 5 * 60 s = 300s = 1000 * 300 = 300.000 ms
-//Timer *timer2 = new Timer(60*1000);       //  1min = 60s = 60*1000 ms
-
-
-// Use the internal (adjusted by ntp) clock to create a string
-// with the current date and time.
-// Tipically used for debugging.
-String theDateIs() {
-    String dateNow;
-    int weekNow = weekday();
-    switch(weekNow) {
-        case 1:
-            dateNow = dateNow + "Domingo ";
-            break;
-        case 2:
-            dateNow = dateNow + "Segunda-feira ";
-            break;
-        case 3:
-            dateNow = dateNow + "Terça-feira ";
-            break;
-        case 4:
-            dateNow = dateNow + "Quarta-feira ";
-            break;
-        case 5:
-            dateNow = dateNow + "Quinta-feira ";
-            break;
-        case 6:
-            dateNow = dateNow + "Sexta-feira ";
-            break;
-        case 7:
-            dateNow = dateNow + "Sábado ";
-            break;
-    } // end switch
-
-    if (day() < 10) {
-        dateNow = dateNow + "0" + String(day()) + "/";
-    } else {
-        dateNow = dateNow + String(day()) + "/";
-    }
-    if (month() < 10) {
-        dateNow = dateNow + "0" + String(month()) + "/";
-    } else {
-        dateNow = dateNow + String(month()) + "/";
-    }
-    dateNow = dateNow + String(year()) + " ";
-    if (hour() < 10) {
-        dateNow = dateNow + "0" + String(hour()) + ":";
-    } else {
-        dateNow = dateNow + String(hour()) + ":";
-    }
-    if (minute() < 10) {
-        dateNow = dateNow + "0" + String(minute()) + ":";
-    } else {
-        dateNow = dateNow + String(minute()) + ":";
-    }
-    if (second() < 10) {
-        dateNow = dateNow + "0" + String(second()) + " ";
-    } else {
-        dateNow = dateNow + String(second()) + " ";
-    }
-    return dateNow;
-} // end theDateIs()
-
-
-// callback function associated with timer1
-// Used to check ntp time on a regular basis.
-void checkNtp(){
-    if (ntpReceived) {
-        timer1->Stop(); //stop the thread.
-#if DEBUG > 0
-        Serial.println("checkNtp:: checkNtp timer stopped");
-#endif
-        // starts temperature sensor readings
-        timer2->setOnTimer(&checkTemperature); //callback function
-        timer2->Start(); //start the thread.
-#if DEBUG >= 1
-        Serial.println("checkNtp:: timer2 to regularly read temperature sensor was initiated.");
-#endif
-  } else {
-        Status = 90; // force a new request for ntp time
-#if DEBUG > 0
-        Serial.print(theDateIs());
-        Serial.println("checkNtp:: Will request new ntp time");
-#endif
-  }
-}
-
-// callback function associated with timer1
-void checkTemperature(){
-    Status = 80; // force a new request for temperature read
-#if DEBUG > 0
-    Serial.print(theDateIs());
-    Serial.println("checkTemperature:: Will request new temperature read"); 
-#endif
-}
-
-    // to read temperature from DS18x20 device using onewire protocol
-    int16_t readTemperature(void) {
-    byte i;
-    byte present = 0;
-    byte type_s;
-    byte data[12];
-    byte addr[8];
-    float celsius, fahrenheit;
-
-    ds.reset_search();
-    delay(250);
-  
-    if ( !ds.search(addr)) {
-#if DEBUG > 1
-        Serial.print(theDateIs());
-        Serial.println("checkTemperature:: No more addresses.");
-#endif
-        ds.reset_search();
-        delay(250);
-        return (-1);
-    }
- 
-#if DEBUG > 1
-    Serial.print(theDateIs());
-    Serial.print("checkTemperature:: ROM =");
-    for( i = 0; i < 8; i++) {
-        Serial.write(' ');
-        Serial.print(addr[i], HEX);
-    }
-#endif
-
-    if (OneWire::crc8(addr, 7) != addr[7]) {
-#if DEBUG > 1
-        Serial.print(theDateIs());
-        Serial.println("checkTemperature:: CRC is not valid!");
-#endif
-        return(-1);
-    }
-    //Serial.println();
-
-  // the first ROM byte indicates which chip
-  switch (addr[0]) {
-
-    case 0x10:
-      // Serial.println("  Chip = DS18S20");  // or old DS1820
-      type_s = 1;
-      break;
-    case 0x28:
-#if DEBUG > 1
-      Serial.println("  Chip = DS18B20");    //  este é o nosso chip!!
-#endif
-      type_s = 0;
-      break;
-    case 0x22:
-      Serial.println("  Chip = DS1822");
-      type_s = 0;
-      break;
-    default:
-#if DEBUG > 1
-      Serial.println("Device is not a DS18x20 family device.");
-#endif
-      return (-1);
-  }
-  //type_s = 0;
-  ds.reset();
-  ds.select(addr);
-  ds.write(0x44, 1);        // start conversion, with parasite power on at the end
-  delay(1000);     // maybe 750ms is enough, maybe not
-  // we might do a ds.depower() here, but the reset will take care of it.
-  present = ds.reset();
-  ds.select(addr);    
-  ds.write(0xBE);         // Read Scratchpad
-
-#if DEBUG > 1
-  Serial.print("readTemperature:: Data = ");
-  Serial.print(present, HEX);
-  Serial.print(" ");
-
-#endif
-  
-    //type_s = 0;
-    ds.reset();
-    ds.select(addr);
-    ds.write(0x44, 1);        // start conversion, with parasite power on at the end
-    delay(1000);     // maybe 750ms is enough, maybe not
-    // we might do a ds.depower() here, but the reset will take care of it.
-    present = ds.reset();
-    ds.select(addr);    
-    ds.write(0xBE);         // Read Scratchpad
-
-#if DEBUG >= 2
-    Serial.print("checkTemperature:: Data = ");
-    Serial.print(present, HEX);
-    Serial.print(" ");
-#endif
-  for ( i = 0; i < 9; i++) {           // we need 9 bytes
-      data[i] = ds.read();
-#if DEBUG >= 2
-      Serial.print(data[i], HEX);
-      Serial.print(" ");
-#endif
-  } // end for()
-#if DEBUG >= 2
-    Serial.println();
-    Serial.print(theDateIs());
-    Serial.print("checkTemperature::CRC=");
-    Serial.print(OneWire::crc8(data, 8), HEX);
-    Serial.println();
-#else
-    OneWire::crc8(data, 8);
-#endif
-
-  // Convert the data to actual temperature
-  // because the result is a 16 bit signed integer, it should
-  // be stored to an "int16_t" type, which is always 16 bits
-  // even when compiled on a 32 bit processor.
-  int16_t raw = (data[1] << 8) | data[0];
-
- /*
-  if (type_s) {
-    raw = raw << 3; // 9 bit resolution default
-    if (data[7] == 0x10) {
-      // "count remain" gives full 12 bit resolution
-      raw = (raw & 0xFFF0) + 12 - data[6];
-    }
-  } else {
-*/
-
-    byte cfg = (data[4] & 0x60);
-    // at lower res, the low bits are undefined, so let's zero them
-    if (cfg == 0x00) raw = raw & ~7;  // 9 bit resolution, 93.75 ms
-    else if (cfg == 0x20) raw = raw & ~3; // 10 bit res, 187.5 ms
-    else if (cfg == 0x40) raw = raw & ~1; // 11 bit res, 375 ms
-    //// default is 12 bit resolution, 750 ms conversion time
-//  }
-
-  celsius = (float)raw / 16.0;
-  fahrenheit = celsius * 1.8 + 32.0;
-#if DEBUG > 1
-  Serial.print("  Temperature = ");
-  Serial.print(celsius);
-  Serial.print(" Celsius, ");
-  Serial.print(fahrenheit);
-  Serial.println(" Fahrenheit");
-#endif
-  
-  return (raw);
-  
-} // end of checkTemperature
-
-
 
 // callback function setup to process  data received by the LoRa radio
 void onReceive(int packetSize) {
@@ -449,6 +195,7 @@ void onReceive(int packetSize) {
 }
 
 
+//-------------------------------- sendBuffer() ----------------------------------
 
 // send just 1 byte - used to send ASCII commands and responses (ENQ, ACK)
 void sendByte (byte tx_byte) {   
@@ -459,7 +206,7 @@ void sendByte (byte tx_byte) {
 }
 
 
-
+//-------------------------------- difference() ----------------------------------
 byte difference (byte b, byte a) {
   if ((b-a)<0) {
 #if DEBUG > 1
@@ -472,10 +219,10 @@ byte difference (byte b, byte a) {
 #endif
     return (b-a);
   }
-}
+} // end of difference()
 
 
-
+//-------------------------------- sendBuffer() ----------------------------------
 // send a buffer of bytes
 void sendBuffer() {
 
@@ -538,14 +285,14 @@ void sendBuffer() {
     display.display(); 
     delay (1000);
 #endif
-}  // end of sendBuffer()
+} // end of sendBuffer()
 
 
+//-------------------------------- received() ----------------------------------
 // check if there are bytes in the Rx buffer
 // returns:
 //    FALSE if nothing has been received by the LoRa radio yet
 //    TRUE  if something has been received by the LoRa radio
-
 boolean received() {
   byte crcReceived, crcCalculated=0;
   byte temp_buffer [256];
@@ -563,13 +310,11 @@ boolean received() {
       buffer_size--;
       crcCalculated = CRC8.smbus(temp_buffer, buffer_size); 
 
-    
-      // for debug purposes only
 #if DEBUG > 1
       Serial.print("received::   rx_buffer_head = "); Serial.println(rx_buffer_head);
       Serial.print("received::   rx_buffer_tail = "); Serial.println(rx_buffer_tail);
 #endif
-//      crcCalculated = CRC8.smbus(&rx_buffer[rx_buffer_tail], difference(rx_buffer_head, rx_buffer_tail)-1 ); // calculates the payload crc8. it does not included the received crc byte 
+
       crcReceived = rx_buffer[rx_buffer_head-1];   // back one position as the head is always pointing to the next received byte. The CRC8 is one position less 
 #if DEBUG > 1
       Serial.print("received::   crcCalculated = "); Serial.println(crcCalculated,HEX); // shows boths crcs
@@ -593,6 +338,7 @@ boolean received() {
 }  // end of received()
 
 
+//-------------------------------- decoder() ----------------------------------
 void decoder (byte Rx_msg[]) {
     Serial.println("decoder::  Msg received from MASTER");
     RxmsgCount++;
@@ -618,132 +364,20 @@ void decoder (byte Rx_msg[]) {
 	09 - update your clock with this time
 	*/
 	
-}
+} // end of decoder()
 
+
+
+//-------------------------------- onDooropen() ----------------------------------
 // callback function who will treat interrupts from the door reed switch sensor
 void onDooropen () {  
    	dooropen = true;
-}
+} // end of onDooropen()
 
 
 
 
-void sendWaterTemperature() {
-  time_t localTime;
-  int16_t Temperature;               // holds the temperature read from a DS18x20 sensor
-
-
-  byte CP1, CP2, CP3, CP4;
-  
-#if DEBUG > 0
-    Serial.println("loop::  Slave reads temperature sensor");
-#endif
-    // 1. Slave reads the temperature
-    //    Every message must have: a HEADER, a payload lenght, and the payload.
-    //  readTemperature session
-    Temperature = readTemperature();                  // reads the temperature from sensor
-    
-    if (Temperature != -1) {
-#if DEBUG > 0
-       Serial.print(theDateIs());
-       Serial.print ("loop::case 80::Temperature =  ");
-       Serial.println (Temperature);
-#endif
-                 
-       tx_buffer[tx_buffer_head++] = HEADER;                   // builds the msg to be transmitted with the water temperature     
-       tx_buffer[tx_buffer_head++] = 0x08;                     // our message is 4 bytes long
-       tx_buffer[tx_buffer_head++] = RESP;
-       tx_buffer[tx_buffer_head++] = water_temperature;
-       tx_buffer[tx_buffer_head++] = Temperature >> 8;         // prepare 2 bytes to be send as the temperature  MSB
-       tx_buffer[tx_buffer_head++] = Temperature & 0x00FF;     //LSB
-              
-       // send timestamp
-       localTime = now();
-       
-       CP1 = (localTime & 0xff000000UL) >> 24;   // most significant byte
-       CP2 = (localTime & 0x00ff0000UL) >> 16;
-       CP3 = (localTime & 0x0000ff00UL) >>  8;
-       CP4 = (localTime & 0x000000ffUL)      ;   // least significant byte
-       tx_buffer[tx_buffer_head++] = CP1;
-       tx_buffer[tx_buffer_head++] = CP2;
-       tx_buffer[tx_buffer_head++] = CP3;
-       tx_buffer[tx_buffer_head++] = CP4;
-       
-/*
-      How to convert EpochTime to FormattedTime:
-      From https://github.com/arduino-libraries/NTPClient/blob/master/NTPClient.cpp
-*/
-              
-       sendBuffer(); // sends the message stored at the tx_buffer
-
-#if DEBUG > 1
-       Serial.print ("loop::case 80:: ");
-       Serial.println(theDateIs());
-#endif
-
-#if OLED > 0
-       display.clear();
-       display.drawString(0, 0, stringDate);
-       display.drawString(0, 26, String ((float)Temperature/16.0)+" oC");
-       display.display();
-#endif
-    } //  if (Temperature != -1) 
-
-} // end of sendWaterTemperature
-
-
-void slaveSetTime() {
-    // 5. Slave receives 4 bytes
-    CP1 = rx_buffer[rx_buffer_tail++];  // most significant byte
-    CP2 = rx_buffer[rx_buffer_tail++]; 
-    CP3 = rx_buffer[rx_buffer_tail++]; 
-    CP4 = rx_buffer[rx_buffer_tail++];  // least significant byte
-    rx_buffer_tail++;   // discart CRC byte. Already verified in received()
-    ntpReceived = true; // true is the normal, false to force a loop, always asking time to master 
-#if DEBUG > 1
-    Serial.println("loop::  After getting ntp data from rx_buffer, we have: ");
-    Serial.print("loop::  rx_buffer_tail="); Serial.print(rx_buffer_tail); Serial.print("   rx_buffer_head="); Serial.println(rx_buffer_head); 
-#endif
-    // 6. Slave converts 4 bytes to ntp time
-    ntpTime = (CP1 << 24) | (CP2 << 16) | (CP3 << 8) | CP4;
-    // 7. Slave uses ntp time to setup its clock
-    setTime(ntpTime);   // sets local clock
-    // 8. prints time for debug purposes only
-
-#if DEBUG > 0
-    Serial.print("loop::  Time set to: ");
-    Serial.println(theDateIs());
-#endif                
-}
-
-void slaveAskTime() {
-#if DEBUG > 1
-    Serial.println("loop::  Entering State 90");
-#endif
-    Serial.println("loop::  Slave asks ntp time to master.");
-    // 1. Slave asks time to Master.
-    //    Every message must have: a HEADER, a payload lenght, and the payload.
-    tx_buffer[tx_buffer_head++] = HEADER;
-    tx_buffer[tx_buffer_head++] = 0x02; // our message is 2 bytes long
-    tx_buffer[tx_buffer_head++] = ALARM;
-    tx_buffer[tx_buffer_head++] = NOCLOCK;
-    sendBuffer(); // sends the message stored at the tx_buffer
-    // Paulo: coloquei as 2 linhas abaixo no setup() pq estava com um bug onde
-    // o relogio estava sendo ajustado novamente, mesmo após o timer do ntp
-    // ter sido parado. A minha teoria é a de que é melhor não redefinir
-    // timer1 e reinicia-lo para cada vez que o slave pede o ntp time,
-    // afinal, o timer1 já foi criado e já está rodando (22-jul-2018).
-    //timer1->setOnTimer(&checkNtp); //callback function
-    //timer1->Start(); //start the thread.
-    // 2. Master obtains ntp time
-    // 3. Master converts ntp time to 4 bytes
-    // 4. Master sends 4 bytes to slave
-    // 5. Slave receives 4 bytes: this is treated by setting Status = 0  
-}
-
-
-
-
+//-------------------------------- slaveCheckCommand() ----------------------------------
 void slaveCheckCommand() {
     byte gpio_pin, gpio_value;
   
@@ -768,10 +402,11 @@ void slaveCheckCommand() {
     Serial.println("slaveCheckCommand::  After getting the command from rx_buffer, we have: ");
     Serial.print("slaveCheckCommand::  rx_buffer_tail="); Serial.print(rx_buffer_tail); Serial.print("   rx_buffer_head="); Serial.println(rx_buffer_head); 
 #endif
-  
 } // end of slaveCheckCommand()
 
-// setup everything ----------------------------------------------------------------------------
+
+
+// --------------------------------  setup ---------------------------------
 void setup() {
   
   Serial.begin(115200);                   
@@ -838,11 +473,7 @@ void setup() {
 #endif
   delay (2000);
 
-    // As 2 linhas abaixo estavam dentro do State 90 (que virou função slaveAskTime().
-    // Foram colocadas aqui para ver se resolvem o bug do slave setar novamente o relogio
-    // mesmo depois de já ter feito isso. (Paulo - 22-jul-2018)
-    timer1->setOnTimer(&checkNtp); //callback function
-    timer1->Start(); //start the thread.
+
 #if DEBUG >= 1
     Serial.println("timer1 to ask ntp time to master was criated.");
 #endif
@@ -851,8 +482,9 @@ void setup() {
   Status = 90;
   
 } // end of setup()
-  
-// -------------------------------------- MAIN loop -------------------------------------------
+
+
+// ------------------------------------ loop -------------------------------------------
 void loop() {
   
   // SSM (software State Machine)
@@ -905,10 +537,6 @@ void loop() {
           Serial.println("loop::  Entering State 2");
 #endif
           switch(rx_buffer[rx_buffer_tail++]) { // capture and treat the type of command
-              case NTPTIME:
-                  slaveSetTime();
-                  Status = 0; // go back to steady state
-                  break; // case NTPTIME
               case COMMAND:
                   slaveCheckCommand();
                   Status = 0; // go back to steady state
@@ -925,7 +553,7 @@ void loop() {
           Serial.println (rx_buffer_tail);  
 #endif
 
-          sendWaterTemperature();
+
 
 #if DEBUG >= 2
           Serial.print ("loop::case 80:: rx_buffer_head DEPOIS de sendWaterTemperature()= ");
@@ -939,7 +567,6 @@ void loop() {
       case 90:
       // Get ntp time from master: sends an ALARM message to master saying slave
       // does not have its clock properly set up (NOCLOCK).
-         slaveAskTime();
          Status = 0; // waits for ntp time from master
          break; // case 90
 
@@ -954,10 +581,7 @@ void loop() {
 
   } // end of switch(Status)
 
-
-    timer1->Update(); // this is the ntp timer (waiting for master to send ntp time).
-    timer2->Update(); // this is the temp sensor timer (waiting for master to send ntp time).
     
  } // end of loop()
  
-// ----------------------------------   END OF PROGRAM ----------------------------------------------------
+// ----------------------------------  fim do programa  --------------------------------------------
