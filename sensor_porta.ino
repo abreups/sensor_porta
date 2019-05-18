@@ -1,33 +1,13 @@
 /*===============================================================================================
-  LoRa HalfDuplex communication wth callback
-
-  SLAVE
-
-  Listen to the Master, and uses callback   for new incoming messages. 
-  Not implements callback for transmission (yet!!)
+   
+  Sensor de porta aberta/fechada usando ESP32 LoRa Wi-Fi da HelTec
+  Autor: Paulo S Abreu
+  v1: Maio-2019
   
-  Formats:
-
-  enq = x05 - 1 byte
-  ack = x06 - 1 byte
-
-  msg { 
-   header  = 1byte (xFF)
-   payloadlen = 1byte (0..xFF)
-   payload  = array byte [255]
-   crc      = ? bytes  //  add in the LoRa link layer  https://www.libelium.com/forum/viewtopic.php?t=24813 - INVESTIGAR - ESTA ALTERANDO O PAYLOD !!!
-  }
-
-  Note: while sending, LoRa radio is not listening for incoming messages.
-  Note2: when using the callback method, you can't use any of the Stream
-  functions that rely on the timeout, such as readString, parseInt(), etc.
-
-  created by Evaldo Nascimento and Paulo Abreu in 05/29, 2018
-  based on the original version by Tom Igoe
  =============================================================================================== */
 
 
-#define DEBUG           2   // 0 = no debug;  1 = partial debug;   2 = full debug
+#define DEBUG           1   // 0 = no debug;  1 = partial debug;   2 = full debug
 
 #define OLED            1   // controls if we will use the OLED display for messages
 
