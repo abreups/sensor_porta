@@ -46,24 +46,7 @@ FastCRC8 CRC8;
 //#define GETTIME     0x01    // slave asks ntp time to master
 
 #define ALARM      0x01      // the message to be transitted is an alarm
-/*
-01 - no_wather
-02 - high_current_motor    // no futuro motor_X (X=1..9)
-03 - no_current_motor       // no futuro motor_X    (X=1..9)
-04 - power_down
-05 - software_reset (watch_dog)
-10 - door open
-20 - during slave setup: gettime (pergunta a hora certa para o master) sempre que houver reset ou 1 vez por mes
-outros alarmes: valor da corrente do motor, valor da temperatura do motor
-*/
 
-// As mensagens recebidas pelo Slave (e portanto enviadas pelo Master) têm o seguinte formato:
-// 3 bytes: COMMAND, SLAVEID, GPIOPIN, GPIOVALUE
-//
-//          COMMAND   =  indica que a mensagem recebida é um comando enviado pelo Master.
-//          SLAVEID   =  ID que identifica o Slave para o qual o comando se destina.
-//          GPIOPIN   =  indica qual a porta GPIO a ser comandada.
-//          GPIOVALUE =  indica qual o valor a ser colocado na porta GPIO (UP or DOWN).
 
 // As mensagens enviadas pelo Slave (e portanto recebidas pelo Master) têm o seguinte formato:
 // 3 bytes: RESP, SLAVEID, ALARMID, ALARMVALUE
@@ -110,6 +93,7 @@ long    lastSendTime, lastSendTime2 =   0;              // last send time
 int     interval, interval2 =        2000;              // interval between sends
 int     i =                             0;              // general counter
 
+/*
 byte    rx_buffer[256];                                 // holds received bytes in callback function
 byte    rx_byte;                                        // holds 1 received byte
 byte    rx_buffer_head =                0;              // array index of rx_buffer  in callback  onReceive function
@@ -119,6 +103,7 @@ byte    RX_msg [256];                                   // holds received bytes 
 
 // test - FF - 10 bytes - ABCDEFGHIJ
 //byte    tx_test[] =                    {0xFF, 10, 65, 66, 67, 68, 69, 70, 71, 72, 73,74}; 
+*/
 
 byte    tx_buffer[256];
 byte    tx_byte;                                        // holds 1 transmitted  byte in foreground sendBuffer function
@@ -135,12 +120,13 @@ byte    Status =                        0;              // SSM - Software State 
 volatile boolean portaAberta = false;    // false == porta está fechada; true == porta está aberta
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // semáforo para ser usado dentro da interrupção
 
-
+/*
 byte    tx_dooralarm[] =              {0xFF, 0x02, 0x01, 0x10}; 
 //                                       |     |     |     +--> Alarm_ID = Door Open
 //                                       |     |     +--------> Msgtype  = ALARM
 //                                       |     +--------------> payload lenght - 2 bytes
 //                                       +--------------------> msg header
+*/
 
 #if OLED >= 1
 //parametros: address,SDA,SCL 
@@ -156,37 +142,6 @@ String packet;
 // Definições das funções auxiliares:
 //
 
-/*
- * não estamos interessados no que chega pelo rádio LoRa.
- * 
-//----------------------------------------------------------------------------
-// onReceive: Função de callback para processar os dados recebidos pelo rádio LoRa.
-//
-void onReceive(int packetSize) {
-  if (packetSize == 0) return;                // se nada foi recebido, volte.
-  do {                                        // repita o loop...
-    rx_byte = LoRa.read();                    // recebe 1 byte
-    rx_buffer[rx_buffer_head++] = rx_byte;    // guarda o byte no rx_buffer e incrementa o ponteiro
-  } while (LoRa.available());                 // ... enquanto tiver bytes sendo recebidos
-#if DEBUG > 1
-  Serial.print("onReceive::rx_buffer_tail = "); Serial.print(rx_buffer_tail);
-  Serial.print("; rx_buffer_head = "); Serial.println(rx_buffer_head);
-#endif
-}
-*/
-
-/*
- * não estamos usando sendByte()
-//------------------------------------------------------------------------------
-// sendByte(): função que envia 1 byte pelo rádio LoRa.
-//
-void sendByte (byte tx_byte) {   
-  LoRa.beginPacket();           // inicia pacote
-  LoRa.write(tx_byte);          // adiciona byte ao pacote a ser transmitido
-  LoRa.endPacket();             // encerra pacote e transmite
-  LoRa.receive();               // chamada necessária para não perder alguma recepção de pacote
-}
-*/
 
 //-----------------------------------------------------------------------------
 // difference(): função que calcula o tamanho de um buffer circular
@@ -267,27 +222,6 @@ void sendBuffer() {
 } // end of sendBuffer()
 
 
-/*
- * não vamos usar esse tipo de interrupção. vamos usar a interrupção do deep sleep.
-//--------------------------------
-// onDooropen(): callback function who will treat interrupts from the door reed switch sensor
-//
-void onDooropen () {  
-    // veja: https://www.fernandok.com/2018/06/os-profissionais-sabem-disso-interrupt.html
-
-    portENTER_CRITICAL_ISR(&mux);
-   	portaAberta = !portaAberta;
-    portEXIT_CRITICAL_ISR(&mux);
-#if DEBUG >= 1
-    if (portaAberta) {
-        Serial.println("Porta abriu");
-    } else {
-        Serial.println("Porta fechou");
-    }
-#endif
-}
-*/
-
 // --------------------------------  setup ---------------------------------
 void setup() {
   
@@ -347,21 +281,6 @@ void setup() {
   }
   
 
-/*  
-  não vamos usar essa interrupção. vamos usar a interrupção do deep sleep
-
-  // chama função de callback onDooropen se houver interrupção na porta GPIO_SENSOR_PORTA
-  // Opções:
-  //     LOW : aciona a interrupção sempre que o pino estiver baixo.
-  //     CHANGE: aciona a interrupção sempre que o pino muda de estado.
-  //     RISING: aciona a interrupção quando o pino vai de baixo para alto (LOW > HIGH).
-  //     FALLING: para acionar a interrupção quando o pino vai de alto para baixo (HIGH > LOW)
-  //     HIGH : aciona a interrupção sempre que o pino estiver alto.
-  attachInterrupt(digitalPinToInterrupt(GPIO_SENSOR_PORTA), onDooropen, CHANGE);  
-*/
-
-
-
   // Inicializa rádio LoRa:
   // override the default CS, reset, and IRQ pins (optional)
   SPI.begin(SCK,MISO,MOSI,SS);                    // start SPI with LoRa
@@ -386,15 +305,6 @@ void setup() {
 #endif    
   }
 
-/*
- não vamos receber nada pelo rádio LoRa
-
-  // setup callback function for reception
-  LoRa.onReceive(onReceive);
-  LoRa.receive();
-
-  delay (2000);
-*/
 
   // transmite um pacote com alarme de porta
   if(portaAberta) {
