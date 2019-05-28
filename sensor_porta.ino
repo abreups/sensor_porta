@@ -325,6 +325,9 @@ void setup() {
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 1);
   }
   sendBuffer(); // transmite
+#if DEBUG >=1 
+  Serial.println("Entrando em deep sleep");
+#endif
   delay(3000); // aguarda 3s antes do deep sleep para dar tempo de ler o display.
   esp_deep_sleep_start();   // entra no modo deep sleep!
 } // end of setup()
