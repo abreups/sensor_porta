@@ -306,6 +306,9 @@ void setup() {
   }
 
 
+#if DEBUG >=1 
+  Serial.println("Transmitindo mensagem.");
+#endif
   // transmite um pacote com alarme de porta
   if(portaAberta) {
       // prepara mensagem de alarme que porta foi aberta
@@ -326,6 +329,7 @@ void setup() {
   }
   sendBuffer(); // transmite
 #if DEBUG >=1 
+  Serial.println("Mensagem transmitida.");
   Serial.println("Entrando em deep sleep");
 #endif
   delay(3000); // aguarda 3s antes do deep sleep para dar tempo de ler o display.
