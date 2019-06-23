@@ -38,23 +38,138 @@
 
 FastCRC8 CRC8;
 
+// Buffer circular implementado pela classe Cqueue.
+// Crie uma instância com 'Cqueue <seuBuffer>;'
+// Métodos:
+//    Empty(): 
+//        retorna true se buffer está vazio.
+//        retorna false se buffer não está vazio.
+//
+//    Full():
+//        retorna true se buffer está cheio.
+//        retorna false se buffer não está cheio.
+//
+//    Add(int Element): coloca um byte ('Element') no fim do buffer.
+//        retorna true se operação teve sucesso.
+//        retorna false se houve problema (e byte não foi para a fila).
+//
+//    Delete(): retira o elemento que está na frente da fila.
+//        retorna true se operação foi bem sucedida.
+//        retorna false se houve problema (e elemento não foi retirado da fila).
+//
+//    getFront(): 
+//        retorna o byte que está na frente da fila.
+//        retorna -1 se o buffer estava vazio.
+//    Size():
+//        retorna a quantidade de bytes na fila (o tamanho do buffer ocupado por dados). 
+//
+//    Clean():
+//        zera o conteúdo do buffer.
+//
+class Cqueue
+{
+	private:
+		int Rear_, Front_;
+		int Queue_[256];
+		int Max_;
+		int Size_;
+	public:
+		Cqueue() {Size_ = 0; Max_ = 256; Rear_ = Front_ = -1;}
+		bool Empty() const;
+		bool Full() const;
+		bool Add(int Element);
+		bool Delete();
+		int getFront();
+    int Size() const;
+    void Clean();
+};
 
-// Protocol command definitions 
-#define HEADER     0xFF     // header da mensagem
-#define ENQ        0x05     // ASCII ENQ - enquire command
-#define ACK        0x06     // ASCII ACK - acnoledge response
-//#define GETTIME     0x01    // slave asks ntp time to master
+bool Cqueue::Empty() const
+{
+	if(Size_ == 0)
+		return true; // sim, está vazia.
+	else
+		return false; // não, não está vazia.
+}
 
-#define ALARM      0x01      // the message to be transitted is an alarm
+bool Cqueue::Full() const
+{
+	if(Size_ == Max_)
+		return true; // buffer está cheio.
+	else
+		return false; // buffer não está cheio.
+}
+
+bool Cqueue::Add(int Element)
+{
+	if(!Full()) {
+		Rear_ = (Rear_ + 1) % Max_;
+		Queue_[Rear_] = Element;
+		Size_++;
+		return true;
+	} else
+		return false;
+}
+
+bool Cqueue::Delete()
+{
+	if(!Empty()) {
+		Front_ = (Front_ + 1) % Max_;
+		Size_--;
+		return true;
+	} else
+		return false;
+}
+
+int Cqueue::getFront()
+{
+	int Temp;
+	if(!Empty()) {
+		Temp = (Front_ + 1) % Max_;
+		return(Queue_[Temp]);
+	} else
+		return(-1);
+}
+
+int Cqueue::Size() const
+{
+    return Size_;
+}
+
+void Cqueue::Clean()
+{
+    Rear_ = Front_;
+    Size_ = 0;
+}
+
+// Cria uma instância de buffer circular chamada 'Q'.
+// S é o nosso "Send buffer" (ou Transmit buffer) do rádio LoRa.
+Cqueue S;
+
+Cqueue T; // fila temporária.
+
+// imprimeFila(): função que coloca na serial o conteúdo de uma fila (um buffer Cqueue).
+//
+void imprimeFila(Cqueue Fila)
+{
+        Cqueue T;
+        T = Fila;
+        while (!T.Empty()) {
+                Serial.print(T.getFront());Serial.print("-");
+                T.Delete();
+        }
+        Serial.println();
+}
 
 
 // As mensagens enviadas pelo Slave (e portanto recebidas pelo Master) têm o seguinte formato:
-// 3 bytes: RESP, SLAVEID, ALARMID, ALARMVALUE
+// 5 bytes: RESP, SLAVEID, ALARMID, ALARMVALUE, CRC
 //
 //          RESP        =  indica que a mensagem é uma resposta enviada pelo Slave.
 //          SLAVEID     =  ID que identifica o Slave que enviou a mensagem.
 //          ALARMID     =  qual o tipo de alarme que o Slave está informando.
 //          ALARMVALUE  =  qual o valor do alarme informado.
+//	    CRC	        = CRC calculado para os bytes anteriores.
 
 #define     COMMAND     0x02
 #define     RESP        0x03
@@ -79,39 +194,8 @@ FastCRC8 CRC8;
 
 #define GPIO_SENSOR_PORTA 35        // pin to receive information from a reed switch sensor
 
-
-// Frequencia do rádio LoRa (depende de que placa você está usando):
-#define BAND    915E6       // Brazil e USA
-//#define BAND    868E6       // Europa
-//#define BAND    433E6       // China
-
-
-// Variables definitions
-byte    TxmsgCount =                    0;              // counter of outgoing messages
-byte    RxmsgCount =                    0;              // counter of incomming messages
-long    lastSendTime, lastSendTime2 =   0;              // last send time
-int     interval, interval2 =        2000;              // interval between sends
-int     i =                             0;              // general counter
-
-/*
-byte    rx_buffer[256];                                 // holds received bytes in callback function
-byte    rx_byte;                                        // holds 1 received byte
-byte    rx_buffer_head =                0;              // array index of rx_buffer  in callback  onReceive function
-byte    rx_buffer_tail =                0;              // array index of rx_buffer  in foreground  
-byte    p_rx_msg =                      0;              // array index of RX_msg 
-byte    RX_msg [256];                                   // holds received bytes in foreground functions
-
-// test - FF - 10 bytes - ABCDEFGHIJ
-//byte    tx_test[] =                    {0xFF, 10, 65, 66, 67, 68, 69, 70, 71, 72, 73,74}; 
-*/
-
-byte    tx_buffer[256];
-byte    tx_byte;                                        // holds 1 transmitted  byte in foreground sendBuffer function
-byte    tx_buffer_head =                0;              // array index of tx_buffer  set before calling sendBuffer function
-byte    tx_buffer_tail =                0;              // array index of tx_buffer  in "callback" actually: foreground sendBuffer function. Callback for transmission not implemented yet 
-byte    msglength=                      0;              // size of received message
-byte    crc =                           0;
-byte    Status =                        0;              // SSM - Software State Machine controler
+// LoRa frequency definition
+#define BAND    915E6       // Lora Radio frequency -  433E6 for China, 868E6 for Europe, 915E6 for USA, Brazil
 
 
 // Se for utilizar alguma variável para passar dados entre uma ISR e o programa principal, 
@@ -120,13 +204,6 @@ byte    Status =                        0;              // SSM - Software State 
 volatile boolean portaAberta = false;    // false == porta está fechada; true == porta está aberta
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // semáforo para ser usado dentro da interrupção
 
-/*
-byte    tx_dooralarm[] =              {0xFF, 0x02, 0x01, 0x10}; 
-//                                       |     |     |     +--> Alarm_ID = Door Open
-//                                       |     |     +--------> Msgtype  = ALARM
-//                                       |     +--------------> payload lenght - 2 bytes
-//                                       +--------------------> msg header
-*/
 
 #if OLED >= 1
 //parametros: address,SDA,SCL 
@@ -142,82 +219,48 @@ String packet;
 // Definições das funções auxiliares:
 //
 
-
-//-----------------------------------------------------------------------------
-// difference(): função que calcula o tamanho de um buffer circular
-byte difference (byte b, byte a) {
-  if ((b-a)<0) {
-#if DEBUG > 1
-    Serial.println("difference::tamanho do buffer = "+ String(b-a+256));
-#endif
-    return (b-a+256);
-  }else{
-#if DEBUG > 1
-    Serial.println("difference::tamanho do buffer = "+ String(b-a));
-#endif
-    return (b-a);
-  }
-}
-
-
 //--------------------------------
 // sendBuffer(): função que transmite vários bytes pelo rádio LoRa
+//               Essa função acrescenta automaticamente um byte de CRC ao final da mensagem.
 //
 void sendBuffer() {
-    byte temp_buffer [256];
-    byte i = 0 , j = 0, crcCalculated =0;
-    unsigned int   buffer_size = 0;
+
+    byte crc_buffer[4];    // buffer temporário para calcular CRC.
+    Cqueue Qtemp;          // buffer temporário.
+    byte crcCalculado = 0;
     
-    // add crc at the end of the txbuffer
-    j = tx_buffer_tail;
-    buffer_size = difference (tx_buffer_head, tx_buffer_tail);
-    for (i = 0; i< buffer_size; i++) {
-        temp_buffer[i] = tx_buffer [j];
-        j++;
-    }
+    Qtemp = S; // copia o conteúdo do Send buffer para o buffer temporário Qtemp.
 #if DEBUG >= 2
-    Serial.print("sendBuffer::temp_buffer: ");
-    for (i = 0; i< buffer_size; i++) {
-        Serial.print(temp_buffer[i],HEX);
-        Serial.print("+");
-    }
-    Serial.println();
+    Serial.print("sendBuffer::Qtemp (sem CRC) = ");
+    imprimeFila(Qtemp);
 #endif
-    crcCalculated = CRC8.smbus(temp_buffer, buffer_size); 
+
+    // pega os bytes da mensagem a ser transmitida.
+    crc_buffer[0] = Qtemp.getFront(); Qtemp.Delete(); // RESP
+    crc_buffer[1] = Qtemp.getFront(); Qtemp.Delete(); // SLAVEID
+    crc_buffer[2] = Qtemp.getFront(); Qtemp.Delete(); // ALARMID
+    crc_buffer[3] = Qtemp.getFront(); Qtemp.Delete(); // ALARMVALUE
+    crcCalculado = CRC8.smbus(crc_buffer, 4); 
+    
+    S.Add(crcCalculado);  // coloca o byte do CRC na fila da mensagem.
 #if DEBUG >= 2
-    Serial.println("sendBuffer::tamanho do buffer = "+ String(difference (tx_buffer_head, tx_buffer_tail),HEX));
-#endif
-    tx_buffer[tx_buffer_head++] = crcCalculated;             // add the crc at the end of the msg to be transmitted
-#if DEBUG >= 2
-    Serial.println("sendBuffer::CRC = "+ String(crcCalculated,HEX));
+    Serial.print("sendBuffer::S (com CRC) = "); imprimeFila(S);
 #endif
 #if DEBUG >= 1
     Serial.println("sendBuffer::Sending LoRa message");
 #endif
-    LoRa.beginPacket();                                  // start packet
+    LoRa.beginPacket();               // Inicia pacote LoRa.
     do {
-        tx_byte = tx_buffer[tx_buffer_tail++];              // get the byte from the buffer
-#if DEBUG >= 2
-        Serial.println("sendBuffer::TxByte= " + String(tx_byte,HEX)+" txhead= " + String(tx_buffer_head)+" txtail= " + String(tx_buffer_tail));
-#endif
-        LoRa.write(tx_byte);                              // add byte to be transmitted
-    } while (tx_buffer_tail != tx_buffer_head);         // while these 2 pointers are different, there are bytes to be trasnmitted
-    LoRa.endPacket();                                   // finish packet and send it
-    LoRa.receive();                                     // you must make Lora listen to reception again !!
-    TxmsgCount++;                                       // increment Tx message counter
-#if DEBUG >= 2
+//#if DEBUG >= 2
+//        Serial.println("sendBuffer::TxByte= " + String(tx_byte,HEX)+" txhead= " + String(tx_buffer_head)+" txtail= " + String(tx_buffer_tail));
+//#endif
+        LoRa.write( S.getFront() );   // Pega próximo byte da fila para transmitir.
+        S.Delete();                   // Remove da fila esse byte.
+    } while ( !S.Empty() );         // Se a fila não estiver vazia, pega o próximo byte.
+    LoRa.endPacket();                 // Termina pacote LoRa e transmite.
+    LoRa.receive();                   // Necessário para não perder pacotes a serem recebidos (não é nosso caso, mas...)
+#if DEBUG >= 1
     Serial.println("sendBuffer::LoRa message sent");
-#endif
-
-#if OLED > 0
-    // displays in the OLED TX and RX msgs counters
-    display.clear();
-    display.drawString(0, 0, "Slave Tx para Master");
-    display.drawString(40, 13, String(TxmsgCount));
-    display.drawString(0, 26, "Slave Rx de Master");
-    display.drawString(40, 39, String(RxmsgCount));
-    display.display(); 
-    delay (1000);
 #endif
 } // end of sendBuffer()
 
@@ -247,16 +290,15 @@ void setup() {
   delay(50); 
   digitalWrite(16, HIGH);
 
-  // initializes the OLED
+  // inicializa display OLED
   display.init(); 
   display.flipScreenVertically(); 
   display.setFont(ArialMT_Plain_10);
 
-   // Slave OK -->> OLED
-  display.drawString(0, 0, "Slave OK!");
+  display.drawString(0, 0, "Display OK");
   display.display(); 
-  delay(3000);
-  display.clear(); 
+  //delay(2000);
+  //display.clear(); 
 #endif
 
   // Definições para o sensor de porta
@@ -266,18 +308,18 @@ void setup() {
   byte leitura_porta = digitalRead(GPIO_SENSOR_PORTA);
   if(leitura_porta == LOW) {
 #if DEBUG >= 1
-      Serial.print("Porta fechada = "); Serial.println(leitura_porta, DEC);
+      Serial.print("Porta fechada ("); Serial.print(leitura_porta, DEC); Serial.println(")");
 #endif
-      portENTER_CRITICAL_ISR(&mux);
+      portENTER_CRITICAL_ISR(&mux);   // liga semáforo.
       portaAberta = false;
-      portEXIT_CRITICAL_ISR(&mux);
+      portEXIT_CRITICAL_ISR(&mux);    // desliga semáforo.
   } else {
 #if DEBUG >= 1    
-      Serial.print("Porta aberta = "); Serial.println(leitura_porta, DEC);
+      Serial.print("Porta aberta ("); Serial.print(leitura_porta, DEC); Serial.println(")");
 #endif      
-      portENTER_CRITICAL_ISR(&mux);
+      portENTER_CRITICAL_ISR(&mux);   // liga semáforo.
       portaAberta = true;
-      portEXIT_CRITICAL_ISR(&mux);
+      portEXIT_CRITICAL_ISR(&mux);    // desliga semáforo.
   }
   
 
@@ -286,21 +328,22 @@ void setup() {
   SPI.begin(SCK,MISO,MOSI,SS);                    // start SPI with LoRa
   LoRa.setPins(SS, RST, DI00);                    // set CS, reset, IRQ pin
   // inicializa rádio LoRa na frequencia especificada
-  if (!LoRa.begin(BAND)) {                   
+  if (!LoRa.begin(BAND)) {           
     Serial.println("setup::inicialização LoRa falhou.");
 #if OLED > 0
-    display.drawString(0, 0, "Inicialização LoRa falhou");
+    display.drawString(0, 10, "Inicializacao LoRa falhou");
     display.display();                  
 #endif
     //while (true);     // se LoRa falhou, entra em loop infinito.
     // ou... entra em deep sleep de novo:
     //esp_deep_sleep_start();   // entra no modo deep sleep!    
+    // ou... dá um reset geral?
   } else {
 #if DEBUG >= 1
   Serial.println("setup::LoRa OK!");
 #endif  
 #if OLED >= 1
-  display.drawString(0, 0, "LoRa OK!");
+  display.drawString(0, 10, "Radio LoRa OK");
   display.display();
 #endif    
   }
@@ -312,18 +355,18 @@ void setup() {
   // transmite um pacote com alarme de porta
   if(portaAberta) {
       // prepara mensagem de alarme que porta foi aberta
-      tx_buffer[tx_buffer_head++] = RESP;
-      tx_buffer[tx_buffer_head++] = SLAVEID;
-      tx_buffer[tx_buffer_head++] = ALARMEDEPORTA;
-      tx_buffer[tx_buffer_head++] = PORTAABERTA;
+      S.Add( RESP );
+      S.Add( SLAVEID );
+      S.Add( ALARMEDEPORTA );
+      S.Add( PORTAABERTA );
       // ajusta a próxima interrupção para quando a porta for fechada
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 0);
   } else {
       // prepara menagem de alarme que porta foi fechada
-      tx_buffer[tx_buffer_head++] = RESP;
-      tx_buffer[tx_buffer_head++] = SLAVEID;
-      tx_buffer[tx_buffer_head++] = ALARMEDEPORTA;
-      tx_buffer[tx_buffer_head++] = PORTAFECHADA;
+      S.Add( RESP );
+      S.Add( SLAVEID );
+      S.Add( ALARMEDEPORTA );
+      S.Add( PORTAFECHADA );
       // ajusta a próxima interrupção para quando a porta for aberta
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 1);
   }
@@ -332,7 +375,13 @@ void setup() {
   Serial.println("Mensagem transmitida.");
   Serial.println("Entrando em deep sleep");
 #endif
+#if OLED >= 1
+  display.drawString(0, 20, "Alarme transmitido");
+  display.display();
+#endif    
+
   delay(3000); // aguarda 3s antes do deep sleep para dar tempo de ler o display.
+
   esp_deep_sleep_start();   // entra no modo deep sleep!
 } // end of setup()
 
