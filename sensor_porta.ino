@@ -3,11 +3,13 @@
   Sensor de porta aberta/fechada usando ESP32 LoRa Wi-Fi da HelTec
   Autor: Paulo S Abreu
   v1: Maio-2019
+  v2: Junho 2019
+      Usando classe Cqueue em C++ para buffer circular.
   
  =============================================================================================== */
 
 
-#define DEBUG           1   // 0 = no debug;  1 = partial debug;   2 = full debug
+#define DEBUG           2   // 0 = no debug;  1 = partial debug;   2 = full debug
 
 #define OLED            1   // controls if we will use the OLED display for messages
 
@@ -210,9 +212,9 @@ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // semáforo para ser usado 
 SSD1306 display(0x3c, 4, 15);          //construtor do objeto do display
 #endif
 
-String rssi = "RSSI --";
-String packSize = "--";
-String packet;
+//String rssi = "RSSI --";
+//String packSize = "--";
+//String packet;
 
 
 //---------------------------------------------------------------------------
@@ -251,9 +253,6 @@ void sendBuffer() {
 #endif
     LoRa.beginPacket();               // Inicia pacote LoRa.
     do {
-//#if DEBUG >= 2
-//        Serial.println("sendBuffer::TxByte= " + String(tx_byte,HEX)+" txhead= " + String(tx_buffer_head)+" txtail= " + String(tx_buffer_tail));
-//#endif
         LoRa.write( S.getFront() );   // Pega próximo byte da fila para transmitir.
         S.Delete();                   // Remove da fila esse byte.
     } while ( !S.Empty() );         // Se a fila não estiver vazia, pega o próximo byte.
