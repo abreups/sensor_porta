@@ -196,25 +196,23 @@ void imprimeFila(Cqueue Fila)
 
 #define GPIO_SENSOR_PORTA 35        // pin to receive information from a reed switch sensor
 
-// LoRa frequency definition
+// Frequencia do rádio LoRa (depende de que placa você está usando):
 #define BAND    915E6       // Lora Radio frequency -  433E6 for China, 868E6 for Europe, 915E6 for USA, Brazil
 
-
+// NÃO PRECISA USAR ISSO NESSE PROGRAMA SIMPLES DE DEEP SLEEP.
+// NÃO ESTAMOS USANDO INTERRUPTS DURANTE A EXECUÇÃO DO PROGRAMA.
 // Se for utilizar alguma variável para passar dados entre uma ISR e o programa principal, 
 // a variável deve ser definida como 'volatile', garantindo assim que elas sejam atualizadas corretamente.
 // Veja: https://www.fernandok.com/2018/06/os-profissionais-sabem-disso-interrupt.html
-volatile boolean portaAberta = false;    // false == porta está fechada; true == porta está aberta
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // semáforo para ser usado dentro da interrupção
+//volatile boolean portaAberta = false;    // false == porta está fechada; true == porta está aberta
+//portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // semáforo para ser usado dentro da interrupção
 
+boolean portaAberta = false; // false == porta está fechada; true == porta está aberta
 
 #if OLED >= 1
 //parametros: address,SDA,SCL 
 SSD1306 display(0x3c, 4, 15);          //construtor do objeto do display
 #endif
-
-//String rssi = "RSSI --";
-//String packSize = "--";
-//String packet;
 
 
 //---------------------------------------------------------------------------
@@ -296,8 +294,7 @@ void setup() {
 
   display.drawString(0, 0, "Display OK");
   display.display(); 
-  //delay(2000);
-  //display.clear(); 
+  delay(3000); //depois retirar
 #endif
 
   // Definições para o sensor de porta
@@ -309,16 +306,16 @@ void setup() {
 #if DEBUG >= 1
       Serial.print("Porta fechada ("); Serial.print(leitura_porta, DEC); Serial.println(")");
 #endif
-      portENTER_CRITICAL_ISR(&mux);   // liga semáforo.
+      //portENTER_CRITICAL_ISR(&mux);   // liga semáforo.
       portaAberta = false;
-      portEXIT_CRITICAL_ISR(&mux);    // desliga semáforo.
+      //portEXIT_CRITICAL_ISR(&mux);    // desliga semáforo.
   } else {
 #if DEBUG >= 1    
       Serial.print("Porta aberta ("); Serial.print(leitura_porta, DEC); Serial.println(")");
 #endif      
-      portENTER_CRITICAL_ISR(&mux);   // liga semáforo.
+      //portENTER_CRITICAL_ISR(&mux);   // liga semáforo.
       portaAberta = true;
-      portEXIT_CRITICAL_ISR(&mux);    // desliga semáforo.
+      //portEXIT_CRITICAL_ISR(&mux);    // desliga semáforo.
   }
   
 
@@ -344,6 +341,7 @@ void setup() {
 #if OLED >= 1
   display.drawString(0, 10, "Radio LoRa OK");
   display.display();
+  delay(3000); //depois retirar
 #endif    
   }
 
@@ -370,17 +368,22 @@ void setup() {
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 1);
   }
   sendBuffer(); // transmite
+#if OLED >= 1
+  display.drawString(0, 20, "Alarme transmitido");
+  display.display();
+  delay(3000); // depois retirar
+#endif    
 #if DEBUG >=1 
   Serial.println("Mensagem transmitida.");
   Serial.println("Entrando em deep sleep");
 #endif
-#if OLED >= 1
-  display.drawString(0, 20, "Alarme transmitido");
-  display.display();
-#endif    
 
   delay(3000); // aguarda 3s antes do deep sleep para dar tempo de ler o display.
-
+#if OLED >= 1
+  display.drawString(0, 30, "Entrando em deep sleep");
+  display.display();
+  delay(3000); // depois retirar
+#endif   
   esp_deep_sleep_start();   // entra no modo deep sleep!
 } // end of setup()
 
