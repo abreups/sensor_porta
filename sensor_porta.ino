@@ -324,7 +324,7 @@ void setup() {
   SPI.begin(SCK,MISO,MOSI,SS);                    // start SPI with LoRa
   LoRa.setPins(SS, RST, DI00);                    // set CS, reset, IRQ pin
   // inicializa rádio LoRa na frequencia especificada
-  if (!LoRa.begin(BAND)) {           
+  if (!LoRa.begin(BAND)) {
     Serial.println("setup::inicialização LoRa falhou.");
 #if OLED > 0
     display.drawString(0, 10, "Inicializacao LoRa falhou");
@@ -344,6 +344,21 @@ void setup() {
   delay(3000); //depois retirar
 #endif    
   }
+
+
+// Ajusta potência de transmissão.
+// Se a potência do rádio LoRa para a transmissão estiver ajustada para um valor
+// muito alto (como o default, que é o modo PA_BOOST, a placa vai puxar muita
+// corrente e se estiver alimentada por bateria, estas não aguentam a demanda
+// e a placa reseta.
+// Ajustando para uma potência mais baixa elimina o problema. Obviamente o alcance
+// do rádio loRa diminui.
+// void setTxPower(int level, int outputPin = PA_OUTPUT_PA_BOOST_PIN);
+//   PA_OUTPUT_PA_BOOST_PIN = 1: é o default e é a potência de transmissão mais alta.
+//   0 <= level <= 14
+LoRa.setTxPower( 1 , 0);
+
+
 
 #if DEBUG >=1 
   Serial.println("Transmitindo mensagem.");
