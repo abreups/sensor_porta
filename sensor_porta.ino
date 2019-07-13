@@ -345,7 +345,6 @@ void setup() {
 #endif    
   }
 
-
 #if DEBUG >=1 
   Serial.println("Transmitindo mensagem.");
 #endif
@@ -368,22 +367,26 @@ void setup() {
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 1);
   }
   sendBuffer(); // transmite
+
+
 #if OLED >= 1
   display.drawString(0, 20, "Alarme transmitido");
   display.display();
   delay(3000); // depois retirar
-#endif    
+#endif 
+
+   
 #if DEBUG >=1 
-  Serial.println("Mensagem transmitida.");
+  Serial.println("Alarme transmitido.");
   Serial.println("Entrando em deep sleep");
 #endif
 
-  delay(3000); // aguarda 3s antes do deep sleep para dar tempo de ler o display.
 #if OLED >= 1
   display.drawString(0, 30, "Entrando em deep sleep");
   display.display();
-  delay(3000); // depois retirar
-#endif   
+#endif
+
+  delay(3000); // aguarda 3s antes do deep sleep para dar tempo de ler o display.
   esp_deep_sleep_start();   // entra no modo deep sleep!
 } // end of setup()
 
