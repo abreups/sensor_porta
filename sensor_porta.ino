@@ -199,14 +199,6 @@ void imprimeFila(Cqueue Fila)
 // Frequencia do rádio LoRa (depende de que placa você está usando):
 #define BAND    915E6       // Lora Radio frequency -  433E6 for China, 868E6 for Europe, 915E6 for USA, Brazil
 
-// NÃO PRECISA USAR ISSO NESSE PROGRAMA SIMPLES DE DEEP SLEEP.
-// NÃO ESTAMOS USANDO INTERRUPTS DURANTE A EXECUÇÃO DO PROGRAMA.
-// Se for utilizar alguma variável para passar dados entre uma ISR e o programa principal, 
-// a variável deve ser definida como 'volatile', garantindo assim que elas sejam atualizadas corretamente.
-// Veja: https://www.fernandok.com/2018/06/os-profissionais-sabem-disso-interrupt.html
-//volatile boolean portaAberta = false;    // false == porta está fechada; true == porta está aberta
-//portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // semáforo para ser usado dentro da interrupção
-
 boolean portaAberta = false; // false == porta está fechada; true == porta está aberta
 
 #if OLED >= 1
@@ -306,16 +298,12 @@ void setup() {
 #if DEBUG >= 1
       Serial.print("Porta fechada ("); Serial.print(leitura_porta, DEC); Serial.println(")");
 #endif
-      //portENTER_CRITICAL_ISR(&mux);   // liga semáforo.
       portaAberta = false;
-      //portEXIT_CRITICAL_ISR(&mux);    // desliga semáforo.
   } else {
 #if DEBUG >= 1    
       Serial.print("Porta aberta ("); Serial.print(leitura_porta, DEC); Serial.println(")");
 #endif      
-      //portENTER_CRITICAL_ISR(&mux);   // liga semáforo.
       portaAberta = true;
-      //portEXIT_CRITICAL_ISR(&mux);    // desliga semáforo.
   }
   
 
@@ -357,7 +345,6 @@ void setup() {
 //   PA_OUTPUT_PA_BOOST_PIN = 1: é o default e é a potência de transmissão mais alta.
 //   0 <= level <= 14
 LoRa.setTxPower( 1 , 0);
-
 
 
 #if DEBUG >=1 
