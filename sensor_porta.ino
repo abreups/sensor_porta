@@ -193,8 +193,8 @@ void imprimeFila(Cqueue Fila)
 #define RST     14         // GPIO14 -- SX127x's RESET
 #define DI00    26         // GPIO26 -- SX127x's IRQ(Interrupt Request)
 
-
-#define GPIO_SENSOR_PORTA 35        // pin to receive information from a reed switch sensor
+#define GPIO_SENSOR_PORTA 36        // pin to receive information from a reed switch sensor
+//#define GPIO_SENSOR_PORTA 35        // pin to receive information from a reed switch sensor
 
 // Frequencia do rádio LoRa (depende de que placa você está usando):
 #define BAND    915E6       // Lora Radio frequency -  433E6 for China, 868E6 for Europe, 915E6 for USA, Brazil
@@ -357,6 +357,13 @@ LoRa.setTxPower( 1 , 0);
       S.Add( SLAVEID );
       S.Add( ALARMEDEPORTA );
       S.Add( PORTAABERTA );
+#if OLED >= 1
+      display.drawString(0, 20, "Alarme PORTA ABERTA");
+      display.display();
+#endif 
+#if DEBUG >=1 
+      Serial.println("Alarme PORTA ABERTA.");
+#endif
       // ajusta a próxima interrupção para quando a porta for fechada
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 0);
   } else {
@@ -365,19 +372,23 @@ LoRa.setTxPower( 1 , 0);
       S.Add( SLAVEID );
       S.Add( ALARMEDEPORTA );
       S.Add( PORTAFECHADA );
+#if OLED >= 1
+      display.drawString(0, 20, "Alarme PORTA FECHADA");
+      display.display();
+#endif 
+#if DEBUG >=1 
+      Serial.println("Alarme PORTA FECHADA.");
+#endif
       // ajusta a próxima interrupção para quando a porta for aberta
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 1);
   }
   sendBuffer(); // transmite
 
-
 #if OLED >= 1
-  display.drawString(0, 20, "Alarme transmitido");
-  display.display();
+  // pra dar tempo de ler o display
   delay(3000); // depois retirar
 #endif 
 
-   
 #if DEBUG >=1 
   Serial.println("Alarme transmitido.");
   Serial.println("Entrando em deep sleep");
