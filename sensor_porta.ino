@@ -35,6 +35,9 @@
 // ambos os arquivos vem da fonte: https://github.com/PaulStoffregen/Time
 
 
+//#include "esp_sleep.h"
+#include "driver/rtc_io.h"
+
 #include <FastCRC.h> // fonte: https://github.com/FrankBoesing/FastCRC
 
 
@@ -193,8 +196,10 @@ void imprimeFila(Cqueue Fila)
 #define RST     14         // GPIO14 -- SX127x's RESET
 #define DI00    26         // GPIO26 -- SX127x's IRQ(Interrupt Request)
 
-#define GPIO_SENSOR_PORTA 36        // pin to receive information from a reed switch sensor
-//#define GPIO_SENSOR_PORTA 35        // pin to receive information from a reed switch sensor
+// Utilizaremos o pino GPIO36 para conectar o sensor da porta.
+// É a mesma posição física tanto na V1 como na V2 da placa.
+#define GPIO_SENSOR_PORTA 36        
+                    
 
 // Frequencia do rádio LoRa (depende de que placa você está usando):
 #define BAND    915E6       // Lora Radio frequency -  433E6 for China, 868E6 for Europe, 915E6 for USA, Brazil
@@ -289,8 +294,8 @@ void setup() {
   delay(3000); //depois retirar
 #endif
 
-  // Definições para o sensor de porta
-  pinMode(GPIO_SENSOR_PORTA, INPUT);  //  this pin will receive a low signal if the door is open (?)
+  // Define pino do sensor como "entrada"
+  pinMode(GPIO_SENSOR_PORTA, INPUT);
 
   // testa estado da GPIO para pegar o estado da porta
   byte leitura_porta = digitalRead(GPIO_SENSOR_PORTA);
@@ -365,7 +370,7 @@ LoRa.setTxPower( 1 , 0);
       Serial.println("Alarme PORTA ABERTA.");
 #endif
       // ajusta a próxima interrupção para quando a porta for fechada
-      esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 0);
+      esp_sleep_enable_ext0_wakeup(GPIO_NUM_36, 0);
   } else {
       // prepara menagem de alarme que porta foi fechada
       S.Add( RESP );
@@ -380,7 +385,7 @@ LoRa.setTxPower( 1 , 0);
       Serial.println("Alarme PORTA FECHADA.");
 #endif
       // ajusta a próxima interrupção para quando a porta for aberta
-      esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 1);
+      esp_sleep_enable_ext0_wakeup(GPIO_NUM_36, 1);
   }
   sendBuffer(); // transmite
 
@@ -400,6 +405,9 @@ LoRa.setTxPower( 1 , 0);
 #endif
 
   delay(3000); // aguarda 3s antes do deep sleep para dar tempo de ler o display.
+  // https://github.com/espressif/esp-idf/issues/2043
+  //rtc_gpio_init(GPIO_NUM_36);
+  //rtc_gpio_set_direction(GPIO_NUM_36, RTC_GPIO_MODE_INPUT_ONLY);
   esp_deep_sleep_start();   // entra no modo deep sleep!
 } // end of setup()
 
